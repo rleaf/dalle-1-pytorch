@@ -5,32 +5,32 @@ import torch.nn.functional as F
 # from torch import einsum
 
 class dVAE(nn.Module):
-   def __init__(self, tokens, dim):
+   def __init__(self, tokens, codebook_dim, hidden_dim):
       super().__init__()
 
       self.encoder = nn.Sequential(
-         nn.Conv2d(3, 64, 4, stride = 2, padding = 1),
+         nn.Conv2d(3, hidden_dim, 4, stride = 2, padding = 1),
          nn.ReLU(),
-         nn.Conv2d(64, 64, 4, stride = 2, padding = 1),
+         nn.Conv2d(hidden_dim, hidden_dim, 4, stride = 2, padding = 1),
          nn.ReLU(),
-         nn.Conv2d(64, 64, 4, stride = 2, padding = 1),
+         nn.Conv2d(hidden_dim, hidden_dim, 4, stride = 2, padding = 1),
          nn.ReLU(),
-         nn.Conv2d(64, tokens, 1)
+         nn.Conv2d(hidden_dim, tokens, 1)
       )
 
       self.decoder = nn.Sequential(
-         nn.ConvTranspose2d(dim, 64, 4, stride = 2, padding = 1),
+         nn.ConvTranspose2d(codebook_dim, hidden_dim, 4, stride = 2, padding = 1),
          nn.ReLU(),
-         nn.ConvTranspose2d(64, 64, 4, stride = 2, padding = 1),
+         nn.ConvTranspose2d(hidden_dim, hidden_dim, 4, stride = 2, padding = 1),
          nn.ReLU(),
-         nn.ConvTranspose2d(64, 64, 4, stride = 2, padding = 1),
+         nn.ConvTranspose2d(hidden_dim, hidden_dim, 4, stride = 2, padding = 1),
          nn.ReLU(),
-         nn.Conv2d(64, 3, 1)
+         nn.Conv2d(hidden_dim, 3, 1)
       )
 
       self.tokens = tokens
       # self.recon = F.mse_loss
-      self.codebook = nn.Embedding(tokens, dim) # (tokens, dim)
+      self.codebook = nn.Embedding(tokens, codebook_dim) # (tokens, dim)
 
    def codebook_indices(self, x):
       # Circumvent gumbel sampling during testing & eventual joint training ? 
@@ -64,10 +64,10 @@ class dVAE(nn.Module):
       out = self.decoder(tokens) # (B, 3, H, W)
 
       recon_loss = F.mse_loss(img, out)
-      latent = latent.permute(0, 3, 2, 1)
-      logits = F.log_softmax(latent, dim = -1)
-      log_uniform = torch.log(torch.tensor([1. / self.tokens], device = logits.device))
-      kl_div = F.kl_div(log_uniform, logits, None, None, 'batchmean', log_target = True)
+      logits = logits.permute(0, 2, 3, 1) # (B, H', W', tokens)
+      logits = F.log_softmax(logits, dim = -1)
+      log_uniform = torch.log(torch.tensor((1. / self.tokens), device = logits.device))
+      kl_div = F.kl_div(log_uniform, logits, None, None, 'batchmean', log_target = True) # DKL(q_\phi || p_\psi)
 
       loss = recon_loss + kl_div
 
@@ -75,7 +75,7 @@ class dVAE(nn.Module):
 
 
 torch.manual_seed(0)
-model = dVAE(200, 512)
+model = dVAE(200, 512, 64)
 input = torch.rand((20, 3, 256, 256))
-loss = model(input)
-print(loss.shape, 'toad')
+loss, out = model(input)
+print(loss, out.shape, 'toad')
