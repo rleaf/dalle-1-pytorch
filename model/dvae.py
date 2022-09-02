@@ -5,11 +5,11 @@ import torch.nn.functional as F
 # from torch import einsum
 
 class dVAE(nn.Module):
-   def __init__(self, tokens, codebook_dim, hidden_dim):
+   def __init__(self, tokens, codebook_dim, hidden_dim, channels):
       super().__init__()
 
       self.encoder = nn.Sequential(
-         nn.Conv2d(3, hidden_dim, 4, stride = 2, padding = 1),
+         nn.Conv2d(channels, hidden_dim, 4, stride = 2, padding = 1),
          nn.ReLU(),
          nn.Conv2d(hidden_dim, hidden_dim, 4, stride = 2, padding = 1),
          nn.ReLU(),
@@ -25,7 +25,7 @@ class dVAE(nn.Module):
          nn.ReLU(),
          nn.ConvTranspose2d(hidden_dim, hidden_dim, 4, stride = 2, padding = 1),
          nn.ReLU(),
-         nn.Conv2d(hidden_dim, 3, 1)
+         nn.Conv2d(hidden_dim, channels, 1),
       )
 
       self.tokens = tokens
@@ -63,6 +63,7 @@ class dVAE(nn.Module):
       # test2 = einsum('b h w n, n d -> b d h w', cont_one_hot, self.codebook.weight)
       out = self.decoder(tokens) # (B, 3, H, W)
 
+      print(img.shape, out.shape, 'weeee')
       recon_loss = F.mse_loss(img, out)
       logits = logits.permute(0, 2, 3, 1) # (B, H', W', tokens)
       logits = F.log_softmax(logits, dim = -1)
@@ -75,7 +76,7 @@ class dVAE(nn.Module):
 
 
 torch.manual_seed(0)
-model = dVAE(200, 512, 64)
-input = torch.rand((20, 3, 256, 256))
+model = dVAE(200, 512, 64, 1)
+input = torch.rand((20, 1, 28, 28))
 loss, out = model(input)
 print(loss, out.shape, 'toad')
