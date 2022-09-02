@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from math import log2
 # Prefer not using einsum for now
 # from torch import einsum
 
@@ -8,22 +9,25 @@ class dVAE(nn.Module):
    def __init__(self, tokens, codebook_dim, hidden_dim, channels):
       super().__init__()
 
+      # If stride = 2 for both enc/dec, log2(H or W) must be int. Asserted on line ~54 ballpark.
       self.encoder = nn.Sequential(
-         nn.Conv2d(channels, hidden_dim, 4, stride = 2, padding = 1),
+         # W' = (W - kernel + 2*padding) / stride + 1
+         nn.Conv2d(channels, hidden_dim, 4, stride = 1, padding = 1),
          nn.ReLU(),
-         nn.Conv2d(hidden_dim, hidden_dim, 4, stride = 2, padding = 1),
+         nn.Conv2d(hidden_dim, hidden_dim, 4, stride = 1, padding = 1),
          nn.ReLU(),
-         nn.Conv2d(hidden_dim, hidden_dim, 4, stride = 2, padding = 1),
+         nn.Conv2d(hidden_dim, hidden_dim, 4, stride = 1, padding = 1),
          nn.ReLU(),
          nn.Conv2d(hidden_dim, tokens, 1)
       )
 
       self.decoder = nn.Sequential(
-         nn.ConvTranspose2d(codebook_dim, hidden_dim, 4, stride = 2, padding = 1),
+         # W' = (W - 1)*stride - 2*padding + (kernel - 1) + 1
+         nn.ConvTranspose2d(codebook_dim, hidden_dim, 4, stride = 1, padding = 1),
          nn.ReLU(),
-         nn.ConvTranspose2d(hidden_dim, hidden_dim, 4, stride = 2, padding = 1),
+         nn.ConvTranspose2d(hidden_dim, hidden_dim, 4, stride = 1, padding = 1),
          nn.ReLU(),
-         nn.ConvTranspose2d(hidden_dim, hidden_dim, 4, stride = 2, padding = 1),
+         nn.ConvTranspose2d(hidden_dim, hidden_dim, 4, stride = 1, padding = 1),
          nn.ReLU(),
          nn.Conv2d(hidden_dim, channels, 1),
       )
@@ -32,12 +36,14 @@ class dVAE(nn.Module):
       # self.recon = F.mse_loss
       self.codebook = nn.Embedding(tokens, codebook_dim) # (tokens, dim)
 
-   def codebook_indices(self, x):
-      # Circumvent gumbel sampling during testing & eventual joint training ? 
-      # a = self(images, return_logits = True)
-      # b = torch.argmax(a, dim = 1)
-      # return b
+   def hard_indices(self, images):
+      # Circumvent gumbel sampling during training/testing 
+      a = self(images, return_logits=True)  # (B, tokens, H', W')
+      b = torch.argmax(a, dim = 1).flatten(1) # (B, tokens * H' * W')
+      return b
       # If I do this, do I need a decode() method to handle b and feed it through: codebook(b) = c --> self.decoder(c) = d? 
+
+   def codebook_decode(self, x):
       pass
 
 
@@ -47,6 +53,8 @@ class dVAE(nn.Module):
       codebook(cont_one_hot) = tokens -> 
       dec(tokens) -> out -> ELBO(img, out) = loss
       """
+      # assert log2(img.shape[0]).is_integer()
+
       logits = self.encoder(img) # (B, tokens, H', W')
 
       if return_logits:
@@ -63,7 +71,7 @@ class dVAE(nn.Module):
       # test2 = einsum('b h w n, n d -> b d h w', cont_one_hot, self.codebook.weight)
       out = self.decoder(tokens) # (B, 3, H, W)
 
-      print(img.shape, out.shape, 'weeee')
+      # print(img.shape, logits.shape, out.shape, 'toads2')
       recon_loss = F.mse_loss(img, out)
       logits = logits.permute(0, 2, 3, 1) # (B, H', W', tokens)
       logits = F.log_softmax(logits, dim = -1)
@@ -75,8 +83,8 @@ class dVAE(nn.Module):
       return loss, out
 
 
-torch.manual_seed(0)
-model = dVAE(200, 512, 64, 1)
-input = torch.rand((20, 1, 28, 28))
-loss, out = model(input)
-print(loss, out.shape, 'toad')
+# torch.manual_seed(0)
+# model = dVAE(200, 512, 64, 1)
+# input = torch.rand((20, 1, 28, 28))
+# loss, out = model(input)
+# print(loss, out.shape, 'toad')
