@@ -2,5 +2,5 @@ testing.py
 generate_vae.py
 MNIST_data
 dvae_weights.pt
-
+/dvae_generation
 model/__pycache__

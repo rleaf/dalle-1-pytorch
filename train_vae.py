@@ -16,34 +16,17 @@ import matplotlib.gridspec as gridspec
 from model.dvae import dVAE
 
 
-def train_vae(epoch, model, train_loader, lr):
-   model.train()
-   train_loss = 0
-   # num_classes = 10
-   optimizer = Adam(model.parameters(), lr = lr)
-
-   for batch_idx, (data, labels) in enumerate(train_loader):
-      data = data.to(device=next(model.parameters()).device)
-      loss, _ = model(data)
-      optimizer.zero_grad()
-      loss.backward()
-      train_loss += loss.data
-      optimizer.step()
-
-   print('Train Epoch: {} \tLoss: {:.6f}'.format(
-       epoch, loss.data))
-
 def main(config):
    epochs = config.epochs
    batch_size = config.batch_size
    # image_size = config.image_size
    # image_path = config.image_path
-
    num_tokens = config.num_tokens
    codebook_dim = config.codebook_dim
    hidden_dim = config.hidden_dim
    learning_rate = config.learning_rate
    channels = config.channels
+   output = config.output
 
    dvae = dVAE(num_tokens, codebook_dim, hidden_dim, channels)
    opt = Adam(dvae.parameters(), lr = learning_rate)
@@ -61,44 +44,37 @@ def main(config):
 
       for i, (data, labels) in enumerate(loader_train):
          # data torch.size([batch_size, 1, 28, 28])
-         print('Index: {}'.format(i))
+         # print('Index: {}'.format(i))
          data = data.to(device=next(dvae.parameters()).device)
          loss, out = dvae(data)
          opt.zero_grad()
          loss.backward()
          opt.step()
 
+         if i % 100 == 0:
+            print('hundy', i)
+            j = 10
+
+            # with out.cpu().detach().numpy():
+            out = out.cpu().detach().numpy()
+            data2 = data.cpu().detach().numpy()
+
+            plt.figure(figsize=(10, 2))
+            gspec = gridspec.GridSpec(1, 10)
+            gspec.update(wspace=0.05, hspace=0.05)
+            for k, sample in enumerate(data2[:j]):
+               ax = plt.subplot(gspec[k])
+               plt.axis('off')
+               ax.set_xticklabels([])
+               ax.set_yticklabels([])
+               ax.set_aspect('equal')
+               plt.imshow(sample.reshape(28, 28), cmap='Greys_r')
+            plt.savefig(os.path.join(output, 'dvae_generationE{}.jpg'.format(epoch)))
+                  
       print('Epoch: {} \tLoss: {:.6f}'.format(
          epoch, loss.data))
 
-      if i & 100 == 0:
-         j = 4
-
-      # Reconstruction via argmax > gumbel softmax
-      #    with torch.no_grad():
-            # logits = dvae.hard_indices(data[:j])
-            # hard_out = dvae.codebook_decode(logits) # shape (j, C, H, W) probably
-
-         plt.figure(figsize=(10, 1))
-         gspec = gridspec.GridSpec(1, 10)
-         gspec.update(wspace=0.05, hspace=0.05)
-         for i, sample in enumerate(out[:j]):
-            ax = plt.subplot(gspec[i])
-            plt.axis('off')
-            ax.set_xticklabels([])
-            ax.set_yticklabels([])
-            ax.set_aspect('equal')
-            plt.imshow(sample.reshape(28, 28), cmap='Greys_r')
-            plt.savefig(os.path.join(config.output, 'vae_generation.jpg'))
-
-         break
-
-
-
-
    torch.save(dvae, os.path.join('./', 'dvae_weights.pt'))
-
-
 
 if __name__ == '__main__':
    args = argparse.ArgumentParser()
@@ -112,6 +88,7 @@ if __name__ == '__main__':
    args.add_argument('--hidden_dim', type = int, default = 24)
    args.add_argument('--learning_rate', type = float, default = 1e-3)
    args.add_argument('--channels', type = int, default = 1) # MNIST is b/w
+   args.add_argument('--output', type = str, default = './dvae_generation')
 
    config = args.parse_args()
 

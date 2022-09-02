@@ -71,10 +71,9 @@ class dVAE(nn.Module):
       # test2 = einsum('b h w n, n d -> b d h w', cont_one_hot, self.codebook.weight)
       out = self.decoder(tokens) # (B, 3, H, W)
 
-      # print(img.shape, logits.shape, out.shape, 'toads2')
       recon_loss = F.mse_loss(img, out)
-      logits = logits.permute(0, 2, 3, 1) # (B, H', W', tokens)
-      logits = F.log_softmax(logits, dim = -1)
+
+      logits = F.log_softmax(logits.permute(0, 2, 3, 1), dim = -1) # logits.shape (B, H', W', tokens)
       log_uniform = torch.log(torch.tensor((1. / self.tokens), device = logits.device))
       kl_div = F.kl_div(log_uniform, logits, None, None, 'batchmean', log_target = True) # DKL(q_\phi || p_\psi)
 
