@@ -37,40 +37,38 @@ def main(config):
    mnist_train = dset.MNIST('./MNIST_data' , train=True, download=True,
                             transform=T.ToTensor())
    loader_train = DataLoader(mnist_train, batch_size=batch_size,
-                             shuffle=True, drop_last=True, num_workers=2)
+                             shuffle=True, drop_last=True, num_workers=0)
 
+   plt.figure(figsize=(10, 2))
    for epoch in range(epochs):
+
       dvae.train()
 
       for i, (data, labels) in enumerate(loader_train):
          # data torch.size([batch_size, 1, 28, 28])
-         # print('Index: {}'.format(i))
          data = data.to(device=next(dvae.parameters()).device)
          loss, out = dvae(data)
+         print('Index: {}'.format(i))
          opt.zero_grad()
          loss.backward()
          opt.step()
 
-         if i % 100 == 0:
-            print('hundy', i)
-            j = 10
+      # Temporary
+      j = 10
+      out_np = out.cpu().detach().numpy()
+      # data2 = data.cpu().detach().numpy()
 
-            # with out.cpu().detach().numpy():
-            out = out.cpu().detach().numpy()
-            data2 = data.cpu().detach().numpy()
+      gspec = gridspec.GridSpec(1, 10)
+      gspec.update(wspace=0.05, hspace=0.05)
+      for k, sample in enumerate(out_np[:j]):
+         ax = plt.subplot(gspec[k])
+         plt.axis('off')
+         ax.set_xticklabels([])
+         ax.set_yticklabels([])
+         ax.set_aspect('equal')
+         plt.imshow(sample.reshape(28, 28), cmap='Greys_r')
+      plt.savefig(os.path.join(output, 'dvae_generationE{}.jpg'.format(epoch)))
 
-            plt.figure(figsize=(10, 2))
-            gspec = gridspec.GridSpec(1, 10)
-            gspec.update(wspace=0.05, hspace=0.05)
-            for k, sample in enumerate(data2[:j]):
-               ax = plt.subplot(gspec[k])
-               plt.axis('off')
-               ax.set_xticklabels([])
-               ax.set_yticklabels([])
-               ax.set_aspect('equal')
-               plt.imshow(sample.reshape(28, 28), cmap='Greys_r')
-            plt.savefig(os.path.join(output, 'dvae_generationE{}.jpg'.format(epoch)))
-                  
       print('Epoch: {} \tLoss: {:.6f}'.format(
          epoch, loss.data))
 
@@ -83,7 +81,7 @@ if __name__ == '__main__':
    args.add_argument('--batch_size', type = int, default = 128)
    # args.add_argument('--image_size', type = int, default = 28) # MNIST
    # args.add_argument('--image_path', type = str, default = './')
-   args.add_argument('--num_tokens', type = int, default = 128)
+   args.add_argument('--num_tokens', type = int, default = 512)
    args.add_argument('--codebook_dim', type = int, default = 128)
    args.add_argument('--hidden_dim', type = int, default = 24)
    args.add_argument('--learning_rate', type = float, default = 1e-3)
