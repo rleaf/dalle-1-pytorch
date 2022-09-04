@@ -1,5 +1,6 @@
 import os
 import argparse
+import math
 
 # torch
 import torch
@@ -39,38 +40,48 @@ def main(config):
    loader_train = DataLoader(mnist_train, batch_size=batch_size,
                              shuffle=True, drop_last=True, num_workers=0)
 
-   plt.figure(figsize=(10, 2))
+   temp = 1.
+   step = 0
+   plt.figure(figsize=(10, 1))
+   
    for epoch in range(epochs):
 
       dvae.train()
+      j = 10
 
       for i, (data, labels) in enumerate(loader_train):
-         # data torch.size([batch_size, 1, 28, 28])
          data = data.to(device=next(dvae.parameters()).device)
-         loss, out = dvae(data)
+         loss, out = dvae(data, temp)
          print('Index: {}'.format(i))
          opt.zero_grad()
          loss.backward()
          opt.step()
 
-      # Temporary
-      j = 10
-      out_np = out.cpu().detach().numpy()
-      # data2 = data.cpu().detach().numpy()
+         if i % 200 == 0:
+            with torch.no_grad():
+               codes = dvae.hard_indices(data[:j])
+               hard_recons = dvae.codebook_decode(codes)
 
-      gspec = gridspec.GridSpec(1, 10)
-      gspec.update(wspace=0.05, hspace=0.05)
-      for k, sample in enumerate(out_np[:j]):
-         ax = plt.subplot(gspec[k])
-         plt.axis('off')
-         ax.set_xticklabels([])
-         ax.set_yticklabels([])
-         ax.set_aspect('equal')
-         plt.imshow(sample.reshape(28, 28), cmap='Greys_r')
-      plt.savefig(os.path.join(output, 'dvae_generationE{}.jpg'.format(epoch)))
+               # Temporary
+               hard_recons = hard_recons.detach().cpu()
+               # out_np = out.cpu().detach()
+               # data2 = data.cpu().detach()
 
-      print('Epoch: {} \tLoss: {:.6f}'.format(
-         epoch, loss.data))
+               gspec = gridspec.GridSpec(1, 10)
+               gspec.update(wspace=0.05, hspace=0.05)
+               for k, sample in enumerate(hard_recons[:j]):
+                  ax = plt.subplot(gspec[k])
+                  plt.axis('off')
+                  ax.set_xticklabels([])
+                  ax.set_yticklabels([])
+                  ax.set_aspect('equal')
+                  plt.imshow(sample.reshape(28, 28), cmap='Greys_r')
+               plt.savefig(os.path.join(output, 'dvae_generationE{}.jpg'.format(epoch)))
+
+            temp = max(temp * math.exp(-1e-6 * step), 0.5)
+
+         step += 1
+      print('Epoch: {} \tLoss: {:.6f}'.format(epoch, loss.data))
 
    torch.save(dvae, os.path.join('./', 'dvae_weights.pt'))
 
@@ -83,7 +94,7 @@ if __name__ == '__main__':
    # args.add_argument('--image_path', type = str, default = './')
    args.add_argument('--num_tokens', type = int, default = 512)
    args.add_argument('--codebook_dim', type = int, default = 128)
-   args.add_argument('--hidden_dim', type = int, default = 24)
+   args.add_argument('--hidden_dim', type = int, default = 64)
    args.add_argument('--learning_rate', type = float, default = 1e-3)
    args.add_argument('--channels', type = int, default = 1) # MNIST is b/w
    args.add_argument('--output', type = str, default = './dvae_generation')

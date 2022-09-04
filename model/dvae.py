@@ -38,16 +38,20 @@ class dVAE(nn.Module):
 
    def hard_indices(self, images):
       # Circumvent gumbel sampling during training/testing 
-      a = self(images, return_logits=True)  # (B, tokens, H', W')
-      b = torch.argmax(a, dim = 1).flatten(1) # (B, tokens * H' * W')
+      a = self(images, return_logits = True)  # (B, tokens, H', W')
+      b = torch.argmax(a, dim = 1).flatten(1) # (B, H' * W')
       return b
-      # If I do this, do I need a decode() method to handle b and feed it through: codebook(b) = c --> self.decoder(c) = d? 
 
    def codebook_decode(self, x):
-      pass
+      embeds = self.codebook(x)  # (B, H' * W', codebook_dim)
+      b, n, d = embeds.shape
+      hw = int(n ** (1/2))
 
+      embeds = embeds.reshape(b, d, hw, hw)
+      images = self.decoder(embeds)
+      return images
 
-   def forward(self, img, return_logits = False):  # (B, 3, H, W)
+   def forward(self, img, temp = 1.0, return_logits = False):  # (B, 3, H, W)
       """
       img -> enc(img) = logits -> gumbel(logits) = cont_one_hot
       codebook(cont_one_hot) = tokens -> 
@@ -60,7 +64,7 @@ class dVAE(nn.Module):
       if return_logits:
          return logits
 
-      cont_one_hot = F.gumbel_softmax(logits, dim = 1, tau = 1.).permute(0, 2, 3, 1) # (B, tokens, H', W') -> (B, H', W', tokens)
+      cont_one_hot = F.gumbel_softmax(logits, dim = 1, tau = temp).permute(0, 2, 3, 1) # (B, tokens, H', W') -> (B, H', W', tokens)
       # cont_one_hot = cont_one_hot.flatten(1) # (B, H' * W' * tokens)
       # tokens = self.codebook(cont_one_hot.long()) 
       # n = torch.tensor(tokens.shape[-1])
@@ -72,6 +76,7 @@ class dVAE(nn.Module):
       out = self.decoder(tokens) # (B, 3, H, W)
 
       recon_loss = F.mse_loss(img, out)
+      # recon_loss = F.smooth_l1_loss(img, out)
 
       logits = logits.permute(0, 2, 3, 1).flatten(start_dim = 1, end_dim = -2) # (B, H', W', tokens) -> (B, H' * W', tokens)
       logits = F.log_softmax(logits, dim = -1)
@@ -83,8 +88,11 @@ class dVAE(nn.Module):
       return loss, out
 
 
-torch.manual_seed(0)
-model = dVAE(200, 512, 64, 1)
-input = torch.rand((20, 1, 28, 28))
-loss, out = model(input)
-print(loss, out.shape, 'toad')
+# torch.manual_seed(0)
+# model = dVAE(512, 128, 24, 1)
+# input = torch.rand((20, 1, 28, 28))
+# # loss, out = model(input, temp = 1.)
+# # print(loss, out.shape, 'toad')
+# j = model.hard_indices(input)
+# y = model.codebook_decode(j)
+# print(y.shape, 'toad')
