@@ -12,22 +12,22 @@ class dVAE(nn.Module):
       # If stride = 2 for both enc/dec, log2(H or W) must be int. Asserted on line ~54 ballpark.
       self.encoder = nn.Sequential(
          # W' = (W - kernel + 2*padding) / stride + 1
-         nn.Conv2d(channels, hidden_dim, 4, stride = 1, padding = 1),
+         nn.Conv2d(channels, hidden_dim, 2, stride = 1, padding = 1),
          nn.ReLU(),
-         nn.Conv2d(hidden_dim, hidden_dim, 4, stride = 1, padding = 1),
+         nn.Conv2d(hidden_dim, hidden_dim, 2, stride = 1, padding = 1),
          nn.ReLU(),
-         nn.Conv2d(hidden_dim, hidden_dim, 4, stride = 1, padding = 1),
+         nn.Conv2d(hidden_dim, hidden_dim, 2, stride = 1, padding = 1),
          nn.ReLU(),
          nn.Conv2d(hidden_dim, tokens, 1)
       )
 
       self.decoder = nn.Sequential(
          # W' = (W - 1)*stride - 2*padding + (kernel - 1) + 1
-         nn.ConvTranspose2d(codebook_dim, hidden_dim, 4, stride = 1, padding = 1),
+         nn.ConvTranspose2d(codebook_dim, hidden_dim, 2, stride = 1, padding = 1),
          nn.ReLU(),
-         nn.ConvTranspose2d(hidden_dim, hidden_dim, 4, stride = 1, padding = 1),
+         nn.ConvTranspose2d(hidden_dim, hidden_dim, 2, stride = 1, padding = 1),
          nn.ReLU(),
-         nn.ConvTranspose2d(hidden_dim, hidden_dim, 4, stride = 1, padding = 1),
+         nn.ConvTranspose2d(hidden_dim, hidden_dim, 2, stride = 1, padding = 1),
          nn.ReLU(),
          nn.Conv2d(hidden_dim, channels, 1),
       )
@@ -91,8 +91,8 @@ class dVAE(nn.Module):
 # torch.manual_seed(0)
 # model = dVAE(512, 128, 24, 1)
 # input = torch.rand((20, 1, 28, 28))
-# # loss, out = model(input, temp = 1.)
-# # print(loss, out.shape, 'toad')
-# j = model.hard_indices(input)
-# y = model.codebook_decode(j)
-# print(y.shape, 'toad')
+# loss, out = model(input, temp = 1.)
+# print(loss, out.shape, 'toad')
+# # j = model.hard_indices(input)
+# # y = model.codebook_decode(j)
+# # print(y.shape, 'toad')

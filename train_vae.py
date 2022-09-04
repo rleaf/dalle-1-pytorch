@@ -92,9 +92,9 @@ if __name__ == '__main__':
    args.add_argument('--batch_size', type = int, default = 128)
    # args.add_argument('--image_size', type = int, default = 28) # MNIST
    # args.add_argument('--image_path', type = str, default = './')
-   args.add_argument('--num_tokens', type = int, default = 512)
-   args.add_argument('--codebook_dim', type = int, default = 128)
-   args.add_argument('--hidden_dim', type = int, default = 64)
+   args.add_argument('--num_tokens', type = int, default = 256)
+   args.add_argument('--codebook_dim', type = int, default = 256)
+   args.add_argument('--hidden_dim', type = int, default = 128)
    args.add_argument('--learning_rate', type = float, default = 1e-3)
    args.add_argument('--channels', type = int, default = 1) # MNIST is b/w
    args.add_argument('--output', type = str, default = './dvae_generation')
