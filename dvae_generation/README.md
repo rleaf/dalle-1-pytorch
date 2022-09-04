@@ -1,0 +1,1 @@
+Folder containing generated images.
