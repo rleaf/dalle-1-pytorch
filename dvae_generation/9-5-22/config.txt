@@ -1,0 +1,7 @@
+epochs = 10
+batch_size = 128
+tokens = 512
+codebook_dim = 128
+hidden_dim = 128
+learning_rate = 0.001 
+channels = 1

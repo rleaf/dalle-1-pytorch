@@ -3,7 +3,7 @@ Understanding the DALL-E model by trying to build a *much* smaller one. <a href=
 
 Unfortunately all training will probably be cut short because I'm not comfortable with my 1070 FE sitting at 90c for long periods of time.
 
-## Updates
+## Updates (mm/dd/yy)
 
 ### 9/4/22
 Partially trained dVAE on the MNIST dataset.
@@ -15,14 +15,14 @@ tokens = 256
 codebook_dim = 256
 hidden_dim = 128
 lr = 1e-3
-channel = 1 # Maybe try RGB some time later :)
+channels = 1 # Maybe try RGB some time later :)
 ```
 
 <p align='center'>
 400th iteration, 0th epoch
-<img src='./dvae_generation/dvae_generationE0.jpg'>
+<img src='./dvae_generation/9-4-22/dvae_generationE0.jpg'>
 400th iteration, 1st epoch
-<img src='./dvae_generation/dvae_generationE1.jpg'>
+<img src='./dvae_generation/9-4-22/dvae_generationE1.jpg'>
 0th iteration, 2nd epoch
-<img src='./dvae_generation/dvae_generationE2.jpg'>
+<img src='./dvae_generation/9-4-22/dvae_generationE2.jpg'>
 </p>

@@ -78,24 +78,18 @@ class dVAE(nn.Module):
       dec(tokens) -> out -> ELBO(img, out) = loss
       """
 
-      # Encoder
-
       # assert log2(img.shape[0]).is_integer()
       logits = self.encoder(img) # (B, tokens, H', W')
       if return_logits:
          return logits
 
-      # Decoder
-
-      cont_one_hot = F.gumbel_softmax(logits.permute(0, 2, 3, 1), tau = temp) # (B, tokens, H', W') -> (B, H', W', tokens)
-      tokens = torch.matmul(cont_one_hot, self.codebook.weight).permute(0, 3, 1, 2) # (B, H', W', dim) -> (B, dim, H', W')
-      # test2 = einsum('b h w n, n d -> b d h w', cont_one_hot, self.codebook.weight)
+      # Disretizing logits 
+      gumbel_logit = F.gumbel_softmax(logits.permute(0, 2, 3, 1), tau = temp) # (B, tokens, H', W') -> (B, H', W', tokens)
+      # Training codebook
+      tokens = torch.matmul(gumbel_logit, self.codebook.weight).permute(0, 3, 1, 2) # (B, H', W', dim) -> (B, dim, H', W')
       out = self.decoder(tokens) # (B, 3, H, W)
 
-      # Loss
-
       recon_loss = F.mse_loss(img, out)
-      # recon_loss = F.smooth_l1_loss(img, out)
 
       logits = logits.permute(0, 2, 3, 1).flatten(start_dim = 1, end_dim = -2) # (B, H', W', tokens) -> (B, H' * W', tokens)
       logits = F.log_softmax(logits, dim = -1)
@@ -112,6 +106,6 @@ class dVAE(nn.Module):
 # input = torch.rand((20, 1, 28, 28))
 # loss, out = model(input, temp = 1.)
 # print(loss, out.shape, 'toad')
-# j = model.hard_indices(input)
-# y = model.codebook_decode(j)
-# print(y.shape, 'toad')
+# # j = model.hard_indices(input)
+# # y = model.codebook_decode(j)
+# # print(y.shape, 'toad')

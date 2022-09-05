@@ -27,7 +27,7 @@ def main(config):
    hidden_dim = config.hidden_dim
    learning_rate = config.learning_rate
    channels = config.channels
-   output = config.output
+   # output = config.output
 
    dvae = dVAE(num_tokens, codebook_dim, hidden_dim, channels)
    opt = Adam(dvae.parameters(), lr = learning_rate)
@@ -43,9 +43,12 @@ def main(config):
    temp = 1.
    step = 0
    plt.figure(figsize=(10, 1))
-   
-   for epoch in range(epochs):
 
+   with open('{}/config.txt'.format('./dvae_generation'), 'w') as f:
+      for i in vars(config):
+         f.write('{} = {} \n'.format(i, getattr(config, i)))
+
+   for epoch in range(epochs):
       dvae.train()
       j = 10
 
@@ -76,7 +79,7 @@ def main(config):
                   ax.set_yticklabels([])
                   ax.set_aspect('equal')
                   plt.imshow(sample.reshape(28, 28), cmap='Greys_r')
-               plt.savefig(os.path.join(output, 'dvae_generationE{}.jpg'.format(epoch)))
+               plt.savefig(os.path.join('./dvae_generation', 'dvae_generationE{}.jpg'.format(epoch)))
 
             temp = max(temp * math.exp(-1e-6 * step), 0.5)
 
@@ -89,7 +92,7 @@ if __name__ == '__main__':
    args = argparse.ArgumentParser()
    
    args.add_argument('--epochs', type = int, default = 10)
-   args.add_argument('--batch_size', type = int, default = 128)
+   args.add_argument('--batch_size', type = int, default = 256)
    # args.add_argument('--image_size', type = int, default = 28) # MNIST
    # args.add_argument('--image_path', type = str, default = './')
    args.add_argument('--num_tokens', type = int, default = 256)
@@ -97,7 +100,7 @@ if __name__ == '__main__':
    args.add_argument('--hidden_dim', type = int, default = 128)
    args.add_argument('--learning_rate', type = float, default = 1e-3)
    args.add_argument('--channels', type = int, default = 1) # MNIST is b/w
-   args.add_argument('--output', type = str, default = './dvae_generation')
+   # args.add_argument('--output', type = str, default = './dvae_generation')
 
    config = args.parse_args()
 
