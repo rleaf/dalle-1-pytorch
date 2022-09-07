@@ -1,6 +1,7 @@
 import os
 import argparse
 import math
+from turtle import down
 
 # torch
 import torch
@@ -35,9 +36,9 @@ def main(config):
    if torch.cuda.is_available():
       dvae.cuda()
 
-   mnist_train = dset.MNIST('./MNIST_data' , train=True, download=True,
-                            transform=T.ToTensor())
-   loader_train = DataLoader(mnist_train, batch_size=batch_size,
+   fshn_mnist_train = dset.FashionMNIST('./fashion_MNIST', train=True, download=True, transform=T.ToTensor())
+   mnist_train = dset.MNIST('./MNIST_data' , train=True, download=True, transform=T.ToTensor())
+   loader_train = DataLoader(fshn_mnist_train, batch_size=batch_size,
                              shuffle=True, drop_last=True, num_workers=0)
 
    temp = 1.
@@ -92,7 +93,7 @@ if __name__ == '__main__':
    args = argparse.ArgumentParser()
    
    args.add_argument('--epochs', type = int, default = 10)
-   args.add_argument('--batch_size', type = int, default = 256)
+   args.add_argument('--batch_size', type = int, default = 128)
    # args.add_argument('--image_size', type = int, default = 28) # MNIST
    # args.add_argument('--image_path', type = str, default = './')
    args.add_argument('--num_tokens', type = int, default = 256)

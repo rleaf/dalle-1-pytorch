@@ -1,5 +1,8 @@
 testing.py
 generate_vae.py
-MNIST_data
 dvae_weights.pt
 model/__pycache__
+
+# Data
+fashion_MNIST
+MNIST_data
