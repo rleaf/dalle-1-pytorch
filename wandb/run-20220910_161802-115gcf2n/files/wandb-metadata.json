@@ -1,0 +1,24 @@
+{
+    "os": "Windows-10-10.0.19041-SP0",
+    "python": "3.8.3",
+    "heartbeatAt": "2022-09-10T20:18:02.597199",
+    "startedAt": "2022-09-10T20:18:02.007175",
+    "docker": null,
+    "gpu": "NVIDIA GeForce GTX 1070",
+    "gpu_count": 1,
+    "cpu_count": 8,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "d:\\Github\\dalle-1-pytorch\\train_vae.py",
+    "codePath": "train_vae.py",
+    "git": {
+        "remote": "https://github.com/rleaf/dalle-1-pytorch.git",
+        "commit": "f2046645b18d525cdaa5d75925461f148b9bd9c2"
+    },
+    "email": "calcifer44@gmail.com",
+    "root": "D:/Github/dalle-1-pytorch",
+    "host": "Tower",
+    "username": "Ryan Lin",
+    "executable": "C:\\Users\\Ryan Lin\\AppData\\Local\\Programs\\Python\\Python38\\python.exe"
+}

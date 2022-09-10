@@ -1,7 +1,9 @@
 import os
 import argparse
 import math
-from turtle import down
+
+# wandb
+import wandb
 
 # torch
 import torch
@@ -32,6 +34,13 @@ def main(config):
 
    dvae = dVAE(num_tokens, codebook_dim, hidden_dim, channels)
    opt = Adam(dvae.parameters(), lr = learning_rate)
+
+   wandb.init(project = "DALL-E")
+   wandb.config = {
+      "learning_rate": learning_rate,
+      "epochs": epochs,
+      "batch_size": batch_size
+   }
 
    if torch.cuda.is_available():
       dvae.cuda()
@@ -85,6 +94,9 @@ def main(config):
             temp = max(temp * math.exp(-1e-6 * step), 0.5)
 
          step += 1
+
+         wandb.log({"loss": loss})
+         
       print('Epoch: {} \tLoss: {:.6f}'.format(epoch, loss.data))
 
    torch.save(dvae, os.path.join('./', 'dvae_weights.pt'))
