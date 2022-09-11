@@ -1,3 +1,4 @@
+import code
 import os
 import argparse
 import math
@@ -35,22 +36,29 @@ def main(config):
    dvae = dVAE(num_tokens, codebook_dim, hidden_dim, channels)
    opt = Adam(dvae.parameters(), lr = learning_rate)
 
-   wandb.init(project = "DALL-E")
-   wandb.config = {
-      "learning_rate": learning_rate,
-      "epochs": epochs,
-      "batch_size": batch_size
+   dvae_config = {
+      'hparams': 'copying from Hannu',
+      'epochs': epochs,
+      'learning_rate': learning_rate,
+      'batch_size': batch_size,
+      'num_tokens': num_tokens,
+      'codebook_dim': codebook_dim,
+      'hidden_dim': hidden_dim,
    }
+
+   wandb.init(
+      project = 'Small DALL-E',
+      config = dvae_config)
 
    if torch.cuda.is_available():
       dvae.cuda()
 
-   fshn_mnist_train = dset.FashionMNIST('./fashion_MNIST', train=True, download=True, transform=T.ToTensor())
+   # fshn_mnist_train = dset.FashionMNIST('./fashion_MNIST', train=True, download=True, transform=T.ToTensor())
    mnist_train = dset.MNIST('./MNIST_data' , train=True, download=True, transform=T.ToTensor())
-   loader_train = DataLoader(fshn_mnist_train, batch_size=batch_size,
+   loader_train = DataLoader(mnist_train, batch_size=batch_size,
                              shuffle=True, drop_last=True, num_workers=0)
 
-   temp = 1.
+   temp = 1.0
    step = 0
    plt.figure(figsize=(10, 1))
 
@@ -65,37 +73,53 @@ def main(config):
       for i, (data, labels) in enumerate(loader_train):
          data = data.to(device=next(dvae.parameters()).device)
          loss, out = dvae(data, temp)
-         print('Index: {}'.format(i))
+         # print('Index: {}'.format(i))
          opt.zero_grad()
          loss.backward()
          opt.step()
 
-         if i % 200 == 0:
+         logs = {}
+
+         if i % 100 == 0:
+            print('iter {}/{}'.format(i, len(loader_train)))
             with torch.no_grad():
                codes = dvae.hard_indices(data[:j])
                hard_recons = dvae.codebook_decode(codes)
 
-               # Temporary
-               hard_recons = hard_recons.detach().cpu()
-               # out_np = out.cpu().detach()
-               # data2 = data.cpu().detach()
+            hard_recons, codes = map(lambda x: x.detach().cpu(), (hard_recons, codes))
+            # out_np = out.cpu().detach()
+            # data2 = data.cpu().detach()
 
-               gspec = gridspec.GridSpec(1, 10)
-               gspec.update(wspace=0.05, hspace=0.05)
-               for k, sample in enumerate(hard_recons[:j]):
-                  ax = plt.subplot(gspec[k])
-                  plt.axis('off')
-                  ax.set_xticklabels([])
-                  ax.set_yticklabels([])
-                  ax.set_aspect('equal')
-                  plt.imshow(sample.reshape(28, 28), cmap='Greys_r')
-               plt.savefig(os.path.join('./dvae_generation', 'dvae_generationE{}.jpg'.format(epoch)))
+            logs = {
+               **logs, 
+               'sample images': wandb.Image(data[:j], caption = 'original image'),
+               'reconstructed images': wandb.Image(hard_recons, caption = 'reconstructed image'),
+               'codebook_indices': wandb.Histogram(codes),
+            }
 
-            temp = max(temp * math.exp(-1e-6 * step), 0.5)
+            gspec = gridspec.GridSpec(1, 10)
+            gspec.update(wspace=0.05, hspace=0.05)
+            for k, sample in enumerate(hard_recons[:j]):
+               ax = plt.subplot(gspec[k])
+               plt.axis('off')
+               ax.set_xticklabels([])
+               ax.set_yticklabels([])
+               ax.set_aspect('equal')
+               plt.imshow(sample.reshape(28, 28), cmap='Greys_r')
+            plt.savefig(os.path.join('./dvae_generation', 'dvae_generationE{}.jpg'.format(epoch)))
+
+         temp = max(temp * math.exp(-1e-6 * step), 0.5)
 
          step += 1
 
-         wandb.log({"loss": loss})
+         logs = {
+            **logs,
+            'iteration': i,
+            'loss': loss,
+            'temp': temp
+         }
+
+         wandb.log(logs)
          
       print('Epoch: {} \tLoss: {:.6f}'.format(epoch, loss.data))
 

@@ -6,3 +6,5 @@ model/__pycache__
 # Data
 fashion_MNIST
 MNIST_data
+
+wandb
