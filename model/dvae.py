@@ -5,8 +5,18 @@ from math import log2
 # Prefer not using einsum for now
 # from torch import einsum
 
+class SimpleResBlock(nn.Module):
+   def __init__(self, x):
+      super().__init__()
+      self.net = nn.Sequential(
+         nn.Conv2d(x, x, 3, padding = 1),
+         nn.ReLU(),
+      )
 
-class ResBlock(nn.Module):
+   def forward(self, x):
+      return self.net(x) + x
+
+class _ResBlock(nn.Module):
     def __init__(self, chan):
         super().__init__()
         self.net = nn.Sequential(
@@ -28,26 +38,32 @@ class dVAE(nn.Module):
       self.encoder = nn.Sequential(
          # W' = (W - kernel + 2*padding) / stride + 1
          nn.Conv2d(channels, hidden_dim, 4, stride = 1, padding = 1),
+         SimpleResBlock(hidden_dim),
          nn.ReLU(),
          nn.Conv2d(hidden_dim, hidden_dim, 4, stride = 1, padding = 1),
+         SimpleResBlock(hidden_dim),
          nn.ReLU(),
          nn.Conv2d(hidden_dim, hidden_dim, 4, stride = 1, padding = 1),
+         SimpleResBlock(hidden_dim),
          nn.ReLU(),
-         ResBlock(hidden_dim),
-         ResBlock(hidden_dim),
+         # _ResBlock(hidden_dim),
+         # _ResBlock(hidden_dim),
          nn.Conv2d(hidden_dim, tokens, 1)
       )
 
       self.decoder = nn.Sequential(
          # W' = (W - 1)*stride - 2*padding + (kernel - 1) + 1
          nn.Conv2d(codebook_dim, hidden_dim, 1),
-         ResBlock(hidden_dim),
-         ResBlock(hidden_dim),
+         # _ResBlock(hidden_dim),
+         # _ResBlock(hidden_dim),
          nn.ConvTranspose2d(hidden_dim, hidden_dim, 4, stride = 1, padding = 1),
+         SimpleResBlock(hidden_dim),
          nn.ReLU(),
          nn.ConvTranspose2d(hidden_dim, hidden_dim, 4, stride = 1, padding = 1),
+         SimpleResBlock(hidden_dim),
          nn.ReLU(),
          nn.ConvTranspose2d(hidden_dim, hidden_dim, 4, stride = 1, padding = 1),
+         SimpleResBlock(hidden_dim),
          nn.ReLU(),
          nn.Conv2d(hidden_dim, channels, 1),
       )

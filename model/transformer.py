@@ -24,8 +24,7 @@ class Attention(nn.Module):
 
       attn_softmax = attn.softmax(dim = -1)
       out = torch.matmul(attn_softmax, v)
-      return qkv
-      # q, k, v = 
+      return qkv 
 
 torch.manual_seed(0)
 x = torch.rand((2, 3, 4))
