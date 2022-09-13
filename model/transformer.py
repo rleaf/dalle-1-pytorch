@@ -1,7 +1,37 @@
 import torch
 import torch.nn as nn
 
-# Come back later to this
+"""
+Can standardly create the attn mechanism presented w/ what's below in the comments
+however I'd like to try and do a more efficient operation where operations are done
+in batches.
+"""
+
+class Attention(nn.Module):
+   def __init__(self, dim, head_dim, heads):
+      super().__init__()
+
+      self.inner_dim = head_dim * heads
+      self.qkv = nn.Linear(dim, self.inner_dim * 3)
+
+   def forward(self, x, mask = None): # (B, N, D)
+      qkv = self.qkv(x) # (B, N, M)
+      q, k, v = qkv.chunk(3, dim = -1) # ((B, N, M/3) * 3)
+      attn = torch.matmul(q, k.permute(0, 2, 1)) # (B, N, N)
+
+      if mask:
+         pass
+
+      attn_softmax = attn.softmax(dim = -1)
+      out = torch.matmul(attn_softmax, v)
+      return qkv
+      # q, k, v = 
+
+torch.manual_seed(0)
+x = torch.rand((2, 3, 4))
+attn = Attention(4, 6, 8)
+out = attn(x)
+print('out', out.shape)
 
 class Decoder(nn.Module):
    def __init__(self,
@@ -11,6 +41,9 @@ class Decoder(nn.Module):
       dropout,
       num_dec) -> None:
       super().__init__()
+
+      def forward(self, x):
+         pass
 
 class Transformer(nn.Module):
    def __init__(self,
