@@ -15,7 +15,7 @@ tokens = 256
 codebook_dim = 256
 hidden_dim = 128
 lr = 1e-3
-channels = 1 # Maybe try RGB some time later :)
+channels = 1
 ```
 
 <p align='center'>

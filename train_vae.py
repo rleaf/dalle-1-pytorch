@@ -10,6 +10,7 @@ import wandb
 import torch
 from torch.optim import Adam
 from torch.utils.data import DataLoader
+from torchvision.utils import make_grid
 import torchvision.datasets as dset
 import torchvision.transforms as T
 
@@ -87,6 +88,7 @@ def main(config):
                hard_recons = dvae.codebook_decode(codes)
 
             hard_recons, codes = map(lambda x: x.detach().cpu(), (hard_recons, codes))
+            # hard_recons, data = map(lambda x: make_grid(x), (hard_recons, data[:j]))
             # out_np = out.cpu().detach()
             # data2 = data.cpu().detach()
 

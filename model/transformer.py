@@ -8,23 +8,33 @@ in batches.
 """
 
 class Attention(nn.Module):
+   """
+    - qkv(x) = -> 
+   """
    def __init__(self, dim, head_dim, heads):
       super().__init__()
-
+      self.heads = heads
       self.inner_dim = head_dim * heads
-      self.qkv = nn.Linear(dim, self.inner_dim * 3)
+      self.qkv = nn.Linear(dim, self.inner_dim * 3, bias = False) # (B, N, M) -> (B, N, D)
+      # D = 3 * head_dim * heads
 
-   def forward(self, x, mask = None): # (B, N, D)
-      qkv = self.qkv(x) # (B, N, M)
-      q, k, v = qkv.chunk(3, dim = -1) # ((B, N, M/3) * 3)
-      attn = torch.matmul(q, k.permute(0, 2, 1)) # (B, N, N)
+   def forward(self, x, mask = None): # (B, N, M)
+      qkv = self.qkv(x)  # (B, N, D)
+      qkv = qkv.chunk(3, dim = -1) # ((B, N, M/3) * 3)
+      b, n, d = qkv[0].shape # (B, N, inner_dim)
+
+      q, k, v = [qkv[i].reshape(b, n, self.heads, d // self.heads).permute(0, 2, 1, 3) \
+          for i in range(len(qkv))] # (B, N, H, head_dim) -> (B, H, N, head_dim)
+
+      attn = torch.matmul(q, k.permute(0, 1, 3, 2)) # (B, H, N, N)
+      attn = attn / q.shape[-1] ** (1/2)
 
       if mask:
          pass
 
       attn_softmax = attn.softmax(dim = -1)
       out = torch.matmul(attn_softmax, v)
-      return qkv 
+      return out 
 
 torch.manual_seed(0)
 x = torch.rand((2, 3, 4))

@@ -1,5 +1,4 @@
 testing.py
-generate_vae.py
 dvae_weights.pt
 model/__pycache__
 
