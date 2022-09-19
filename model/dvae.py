@@ -89,9 +89,9 @@ class dVAE(nn.Module):
 
    def forward(self, img, temp = 1.0, return_logits = False):  # (B, 3, H, W)
       """
-      img -> enc(img) = logits -> gumbel(logits) = cont_one_hot
-      codebook(cont_one_hot) = tokens -> 
-      dec(tokens) -> out -> ELBO(img, out) = loss
+      img  ->  enc(img)=logits  ->  gumbel(logits)=cont_one_hot  ->
+      codebook(cont_one_hot)=tokens  -> 
+      dec(tokens)=out  ->  ELBO(img,out)=loss
       """
 
       # assert log2(img.shape[0]).is_integer()
