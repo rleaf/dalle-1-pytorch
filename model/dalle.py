@@ -9,46 +9,42 @@ class DALLE(nn.Module):
    """
    INP  ->  enc(INP)=a  -> codebook(a)=b  ->
    preprocess(b)=c  ->  transformer(c)=d  ->
-   (transformer(d)=d* x token_len)=d2  -> dec(d2)=OUT
+   (transformer(d)=d* x token_len)=d2  ->  dec(d2)=OUT
 
    preprocess() {
       - BPE input text sequence
       - return concat text seq w/ codebook tokens
    }
-   
+
    In training the Transformer autoregressively generates the next token 
    to represent the masked section of an image with the given text seq & codebook tokens
    provided as inp.
       
-   Stage 1
-      - Train dVAE on images where kl divergence in variational lower bound
-        measures from auxiliary $q_phi$ to uniform categorical
+   Stage 1:
+      Train dVAE on images where kl divergence in variational lower bound
+      measures from auxiliary $q_phi$ to uniform categorical $p_psi$ later learned
+      by the transformer.
+
+   Stage 2:
+      Continue to optimize variational lower bound wrt $p_psi$.
+      
+
    """
    def __init__(
       self,
       dim,
-      # vae
-      # img_size, ?
-      tokens,
-      codebook_dim,
-      hidden_dim,
-      channels,
-      # transformer
+      vae,
+      # transformer params
       depth,
       head_dim,
       heads,
       ff_dim,
-      dropout,
-      ff_dropout
+      dropout = 0.0,
+      ff_dropout = 0.0
    ):
       super().__init__()
 
-      self.dvae = dVAE(
-         tokens = tokens,
-         codebook_dim = codebook_dim,
-         hidden_dim = hidden_dim,
-         channels = channels
-      )
+      self.dvae = vae
 
       self.transformer = Transformer(
          dim = dim,
@@ -61,5 +57,6 @@ class DALLE(nn.Module):
       )
 
    
-   def forward(self, x):
-      pass
+   def forward(self, text, image):
+      x = self.dvae.hard_indices(x)
+      x = self.dvae.codebook_decode(x)
