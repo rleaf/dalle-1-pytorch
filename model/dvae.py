@@ -34,7 +34,7 @@ class dVAE(nn.Module):
    def __init__(self, tokens, codebook_dim, hidden_dim, channels):
       super().__init__()
 
-      # If stride = 2 for both enc/dec, log2(H or W) must be int. Asserted on line ~54 ballpark.
+      # If stride = 2 for both enc/dec, log2(H or W) must be int.
       self.encoder = nn.Sequential(
          # W' = (W - kernel + 2*padding) / stride + 1
          nn.Conv2d(channels, hidden_dim, 4, stride = 1, padding = 1),
@@ -105,6 +105,7 @@ class dVAE(nn.Module):
       tokens = torch.matmul(gumbel_logit, self.codebook.weight).permute(0, 3, 1, 2) # (B, H', W', dim) -> (B, dim, H', W')
       out = self.decoder(tokens) # (B, 3, H, W)
 
+      # Maximizing log likelihood of gaussian(bernoulli) is approx equal to minimizing mse_loss(BCE).
       recon_loss = F.mse_loss(img, out)
 
       logits = logits.permute(0, 2, 3, 1).flatten(start_dim = 1, end_dim = -2) # (B, H', W', tokens) -> (B, H' * W', tokens)

@@ -4,15 +4,14 @@ import torch.nn as nn
 from transformer import Transformer
 from dvae import dVAE
 
-
 class DALLE(nn.Module):
    """
-   INP  ->  enc(INP)=a  -> codebook(a)=b  ->
+   INP  ->  enc(INP)=a  ->  codebook(a)=b  ->
    preprocess(b)=c  ->  transformer(c)=d  ->
    (transformer(d)=d* x token_len)=d2  ->  dec(d2)=OUT
 
    preprocess() {
-      - BPE input text sequence
+      - "BPE" input text sequence
       - return concat text seq w/ codebook tokens
    }
 
@@ -32,19 +31,18 @@ class DALLE(nn.Module):
    """
    def __init__(
       self,
-      dim,
       vae,
-      # transformer params
+      dim,
       depth,
       head_dim,
       heads,
       ff_dim,
       dropout = 0.0,
-      ff_dropout = 0.0
+      ff_dropout = 0.0,
    ):
       super().__init__()
 
-      self.dvae = vae
+      self.vae = vae
 
       self.transformer = Transformer(
          dim = dim,
@@ -58,5 +56,11 @@ class DALLE(nn.Module):
 
    
    def forward(self, text, image):
-      x = self.dvae.hard_indices(x)
-      x = self.dvae.codebook_decode(x)
+      """
+      *enc(inp)=a  ->  prep(a)=b  ->
+      transformer(b)=c  ->  ce_loss(c, label)
+
+      prep(): same as above
+      *enc(): use hard_indices method instead of typical forward pass to avoid gumbel 
+      """
+      x = self.vae.hard_indices(image)
