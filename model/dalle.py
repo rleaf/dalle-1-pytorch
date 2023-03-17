@@ -63,4 +63,7 @@ class DALLE(nn.Module):
       prep(): same as above
       *enc(): use hard_indices method instead of typical forward pass to avoid gumbel 
       """
-      x = self.vae.hard_indices(image)
+      image = self.vae.hard_indices(image)
+      tokens = torch.cat((image, text), 1)
+
+      x = self.transformer(tokens)
