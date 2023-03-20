@@ -1,6 +1,15 @@
 import torch
 import torch.nn as nn
 
+def mask(x):
+   # Fix dimensions
+   mask = torch.triu(
+      torch.full((x.shape[2], x.shape[2]), float('-inf'), dtype=torch.bool),
+      diagonal=1
+   )
+   mask = mask.repeat((x.shape[0], x.shape[1], 1, 1))
+   return mask
+
 class Attention(nn.Module):
    """
    Giving it a go in batches
@@ -15,7 +24,7 @@ class Attention(nn.Module):
       - return q, k, v represented as 4d tensors composed (batch, inp_dim[1], head, head_dim)
    }
    """
-   def __init__(self, dim, head_dim, heads, dropout = 0.0):
+   def __init__(self, dim, head_dim, heads, dropout):
       super().__init__()
 
       inner_dim = head_dim * heads
@@ -31,23 +40,26 @@ class Attention(nn.Module):
       qkv = qkv.chunk(3, dim = -1) # ((B, N, D/3) * 3)
       b, n, d = qkv[0].shape # (B, N, inner_dim)
 
-      q, k, v = [qkv[i].reshape(b, n, self.heads, d // self.heads) \
-         for i in range(len(qkv))] # (B, N, H * head_dim) -> (B, N, H, head_dim)
-      attn = torch.matmul(q, k.permute(0, 1, 3, 2)) # (B, N, H, H)
+      q, k, v = [qkv[i].reshape(b, self.heads, d // self.heads, n) \
+         for i in range(len(qkv))]  # (B, H * head_dim, N) -> (B, H, head_dim, N)
+
+      attn = torch.matmul(q, k.permute(0, 1, 3, 2)) # (B, H, head_dim, head_dim)
       attn = attn / q.shape[-1] ** (1/2)
 
-      if mask:
-         pass
+      if mask is not None:
+         attn = attn.masked_fill_(mask, -1e9)
 
-      attn_softmax = attn.softmax(dim = -1)
-      out = torch.matmul(attn_softmax, v) # (B, N, H, head_dim)
+      attn_softmax = attn.softmax(dim=-1)
+      
+      out = torch.matmul(attn_softmax, v) # (B, H, N, head_dim)
       out = out.reshape(b, n, -1) # (B, N, H * head_dim)
       out = self.out(out) # (B, N, inner_dim) -> (B, N, M)
       return out
 
 # torch.manual_seed(0)
-# attn = Attention(4, 6, 8)
+# attn = Attention(4, 6, 8, 0.0)
 # x = torch.rand((2, 3, 4))
+# m = mask(x)
 # out = attn(x)
 # print('out', out.shape)
 
@@ -82,11 +94,12 @@ class Transformer(nn.Module):
       head_dim,
       heads,
       ff_dim,
-      dropout,
-      ff_dropout):
+      dropout = 0.0,
+      ff_dropout = 0.0):
       super().__init__()
 
       self.layers = nn.ModuleList([])
+      self.norm = nn.LayerNorm(dim)
 
       for _ in range(depth):
          self.layers.append(nn.ModuleList([
@@ -100,13 +113,14 @@ class Transformer(nn.Module):
       """
       for attn, ff in self.layers:
          x = attn(x) + x
+         # x = self.norm(attn(x) + x)
          x = ff(x)
 
       return x
 
 
-# torch.manual_seed(0)
-# model = Transformer(4, 3, 6, 8, 4)
-# x = torch.rand((2, 3, 4))
-# out = model(x)
-# print('out', out.shape)
+torch.manual_seed(0)
+model = Transformer(4, 3, 6, 8, 4)
+x = torch.rand((2, 3, 4))
+out = model(x)
+print('out', out.shape)
