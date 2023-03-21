@@ -119,8 +119,8 @@ class Transformer(nn.Module):
       return x
 
 
-torch.manual_seed(0)
-model = Transformer(4, 3, 6, 8, 4)
-x = torch.rand((2, 3, 4))
-out = model(x)
-print('out', out.shape)
+# torch.manual_seed(0)
+# model = Transformer(4, 3, 6, 8, 4)
+# x = torch.rand((2, 3, 4))
+# out = model(x)
+# print('out', out.shape)

@@ -73,7 +73,7 @@ class dVAE(nn.Module):
       self.codebook = nn.Embedding(tokens, codebook_dim) # (tokens, dim)
 
    def hard_indices(self, images):
-      # Circumvent gumbel sampling during training/testing 
+      # Circumvent gumbel sampling during testing 
       a = self(images, return_logits = True)  # (B, tokens, H', W')
       b = torch.argmax(a, dim = 1).flatten(1) # (B, H' * W')
       return b
@@ -99,7 +99,7 @@ class dVAE(nn.Module):
       if return_logits:
          return logits
 
-      # Disretizing logits 
+      # Discretizing logits 
       gumbel_logit = F.gumbel_softmax(logits.permute(0, 2, 3, 1), tau = temp) # (B, tokens, H', W') -> (B, H', W', tokens)
       # Training codebook
       tokens = torch.matmul(gumbel_logit, self.codebook.weight).permute(0, 3, 1, 2) # (B, H', W', dim) -> (B, dim, H', W')
@@ -118,11 +118,14 @@ class dVAE(nn.Module):
       return loss, out
 
 
-# torch.manual_seed(0)
-# model = dVAE(512, 128, 24, 1)
-# input = torch.rand((20, 1, 28, 28))
-# loss, out = model(input, temp = 1.)
-# print(loss, out.shape, 'toad')
-# # j = model.hard_indices(input)
-# # y = model.codebook_decode(j)
-# # print(y.shape, 'toad')
+torch.manual_seed(0)
+model = dVAE(512, 128, 24, 1)
+input = torch.rand((20, 1, 28, 28))
+a = model.hard_indices(input)
+print('a', a.shape)
+b = model.codebook_decode(a)
+loss, out = model(input, temp = 1.)
+print(loss, out.shape, 'toad')
+# j = model.hard_indices(input)
+# y = model.codebook_decode(j)
+# print(y.shape, 'toad')

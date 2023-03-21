@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
 # files
-from model.dvae import dVAE
+from models.dvae import dVAE
 
 
 def main(config):
