@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from math import log2
-# Prefer not using einsum for now
 # from torch import einsum
 
 class SimpleResBlock(nn.Module):
@@ -38,32 +37,24 @@ class dVAE(nn.Module):
       self.encoder = nn.Sequential(
          # W' = (W - kernel + 2*padding) / stride + 1
          nn.Conv2d(channels, hidden_dim, 4, stride = 1, padding = 1),
-         # SimpleResBlock(hidden_dim),
          nn.ReLU(),
          nn.Conv2d(hidden_dim, hidden_dim, 4, stride = 1, padding = 1),
-         # SimpleResBlock(hidden_dim),
          nn.ReLU(),
          nn.Conv2d(hidden_dim, hidden_dim, 4, stride = 1, padding = 1),
-         # SimpleResBlock(hidden_dim),
          nn.ReLU(),
-         ResBlock(hidden_dim),
-         ResBlock(hidden_dim),
+         SimpleResBlock(hidden_dim),
          nn.Conv2d(hidden_dim, tokens, 1)
       )
 
       self.decoder = nn.Sequential(
          # W' = (W - 1)*stride - 2*padding + (kernel - 1) + 1
          nn.Conv2d(codebook_dim, hidden_dim, 1),
-         ResBlock(hidden_dim),
-         ResBlock(hidden_dim),
+         SimpleResBlock(hidden_dim),
          nn.ConvTranspose2d(hidden_dim, hidden_dim, 4, stride = 1, padding = 1),
-         # SimpleResBlock(hidden_dim),
          nn.ReLU(),
          nn.ConvTranspose2d(hidden_dim, hidden_dim, 4, stride = 1, padding = 1),
-         # SimpleResBlock(hidden_dim),
          nn.ReLU(),
          nn.ConvTranspose2d(hidden_dim, hidden_dim, 4, stride = 1, padding = 1),
-         # SimpleResBlock(hidden_dim),
          nn.ReLU(),
          nn.Conv2d(hidden_dim, channels, 1),
       )
@@ -102,7 +93,7 @@ class dVAE(nn.Module):
       # Discretizing logits 
       gumbel_logit = F.gumbel_softmax(logits.permute(0, 2, 3, 1), tau = temp) # (B, tokens, H', W') -> (B, H', W', tokens)
       # Training codebook
-      tokens = torch.matmul(gumbel_logit, self.codebook.weight).permute(0, 3, 1, 2) # (B, H', W', dim) -> (B, dim, H', W')
+      tokens = torch.matmul(gumbel_logit, self.codebook.weight).permute(0, 3, 1, 2) # (B, H', W', codebook_dim) -> (B, codebook_dim, H', W')
       out = self.decoder(tokens) # (B, 3, H, W)
 
       # Maximizing log likelihood of gaussian(bernoulli) is approx equal to minimizing mse_loss(BCE).
@@ -120,7 +111,7 @@ class dVAE(nn.Module):
 
 torch.manual_seed(0)
 model = dVAE(512, 128, 24, 1)
-input = torch.rand((20, 1, 28, 28))
+input = torch.rand((1, 1, 28, 28))
 a = model.hard_indices(input)
 print('a', a.shape)
 b = model.codebook_decode(a)
